@@ -1,0 +1,44 @@
+
+name: Terraform Azure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_USE_OIDC: true
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+      
+      - name: Configurar chave publica SSH
+        env:
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+        run: |
+          echo "TF_VAR_admin_ssh_public_key=$SSH_PUBLIC_KEY" >> "$GITHUB_ENV"
+
+      - name: Inicializar Terraform
+        run: terraform init
+
+      - name: Validar configuracao
+        run: terraform validate
+
+      - name: Planejar Terraform
+        run: terraform plan
+        
+      - name: Aplicar Terraform
+        run: terraform apply -auto-approve      
