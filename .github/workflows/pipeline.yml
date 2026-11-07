@@ -3,6 +3,10 @@ name: Build e Deploy Docker II
 on:
   push:
     branches: [main]
+    paths:
+      - 'app/**'
+      - 'dockerfile'
+      - '.github/workflows/pipeline.yml'
   workflow_dispatch:
 
 jobs:
@@ -29,6 +33,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Estágio de aprovação: o job só roda depois que um revisor aprovar
+    # o environment "producao" (Settings > Environments).
+    environment: producao
 
     steps:
       - name: Implantar na VM via SSH
@@ -41,6 +48,9 @@ jobs:
             # Espera o cloud-init terminar de instalar o Docker (VM recém-criada)
             cloud-init status --wait || true
             timeout 600 bash -c 'until command -v docker >/dev/null 2>&1; do sleep 10; done'
+
+            # Libera a porta 80 caso o site com banco (Compose) esteja no ar
+            docker compose -f ~/site-db/docker-compose.yml down || true
 
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/app-docker-aula:latest
             docker rm -f app-docker-aula || true

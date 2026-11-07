@@ -9,3 +9,11 @@ crash.log
 *.pem
 azure_vm_key
 azure_vm_key.pub
+azure_deploy_key
+azure_deploy_key.pub
+terraform_deploy_key
+terraform_deploy_key.pub
+
+# Node e variáveis locais
+node_modules/
+site-db/.env

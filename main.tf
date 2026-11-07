@@ -148,12 +148,13 @@ resource "azurerm_linux_virtual_machine" "vm" {
     public_key = var.admin_ssh_public_key
   }
 
-  # O Docker e instalado pelo cloud-init (leva alguns minutos apos a VM subir)
+  # Docker e Docker Compose sao instalados pelo cloud-init (leva alguns minutos apos a VM subir)
   custom_data = base64encode(<<-CLOUDCONFIG
     #cloud-config
     package_update: true
     packages:
       - docker.io
+      - docker-compose-v2
     runcmd:
       - [systemctl, enable, --now, docker]
       - [usermod, -aG, docker, azureuser]
