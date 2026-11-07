@@ -67,11 +67,8 @@ jobs:
             fi
 
             # Variáveis usadas pelo docker-compose.yml
-            printf 'POSTGRES_PASSWORD=%s\nDOCKERHUB_USERNAME=%s\n' '${{ secrets.POSTGRES_PASSWORD }}' '${{ secrets.DOCKERHUB_USERNAME }}' > .env
+            printf 'POSTGRES_PASSWORD=%s\nDOCKERHUB_USERNAME=%s\nWEB_PORT=8081\n' '${{ secrets.POSTGRES_PASSWORD }}' '${{ secrets.DOCKERHUB_USERNAME }}' > .env
             chmod 600 .env
-
-            # Libera a porta 80 (usada pelo site simples)
-            docker rm -f app-docker-aula || true
 
             docker compose pull
             docker compose up -d
@@ -80,7 +77,7 @@ jobs:
       - name: Testar se o site e o banco responderam
         run: |
           for i in $(seq 1 12); do
-            if curl -fsS "http://${{ secrets.AZURE_VM_HOST }}/health"; then
+            if curl -fsS "http://${{ secrets.AZURE_VM_HOST }}:8081/health"; then
               echo
               echo "Site e banco no ar"
               exit 0

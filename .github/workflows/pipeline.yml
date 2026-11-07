@@ -49,9 +49,6 @@ jobs:
             cloud-init status --wait || true
             timeout 600 bash -c 'until command -v docker >/dev/null 2>&1; do sleep 10; done'
 
-            # Libera a porta 80 caso o site com banco (Compose) esteja no ar
-            docker compose -f ~/site-db/docker-compose.yml down || true
-
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/app-docker-aula:latest
             docker rm -f app-docker-aula || true
             docker run -d --name app-docker-aula \

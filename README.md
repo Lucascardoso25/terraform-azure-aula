@@ -6,29 +6,29 @@ Projeto da disciplina **Integração e Entrega Contínua (DevOps)**, FATEC, curs
 
 ## Requisitos da atividade "CD com Docker e Docker Compose"
 
-| Requisito | Onde está |
-|-----------|-----------|
-| Deploy de um site simples no servidor da Azure | `app/` + `dockerfile` + `.github/workflows/pipeline.yml` |
-| Deploy de um site com página web + banco de dados via Docker Compose | `site-db/` + `.github/workflows/deploy-compose.yml` |
-| Estágio de aprovação no deploy | `environment: producao` nos dois jobs de deploy |
+| Requisito                                                            | Onde está                                                |
+| -------------------------------------------------------------------- | -------------------------------------------------------- |
+| Deploy de um site simples no servidor da Azure                       | `app/` + `dockerfile` + `.github/workflows/pipeline.yml` |
+| Deploy de um site com página web + banco de dados via Docker Compose | `site-db/` + `.github/workflows/deploy-compose.yml`      |
+| Estágio de aprovação no deploy                                       | `environment: producao` nos dois jobs de deploy          |
 
 ## Endereços (ambiente da aula)
 
-| Aplicação | Endereço |
-|-----------|----------|
-| Site simples (nginx) | `http://20.164.210.248` |
-| Site com banco (Mural de recados) | `http://20.164.210.248:8081` |
+| Aplicação                           | Endereço                            |
+| ----------------------------------- | ----------------------------------- |
+| Site simples (nginx)                | `http://20.164.210.248`             |
+| Site com banco (Mural de recados)   | `http://20.164.210.248:8081`        |
 | Verificação de saúde (site + banco) | `http://20.164.210.248:8081/health` |
 
 O IP é estático enquanto a VM existir. Se o resource group for apagado e a VM recriada, o IP muda e o secret `AZURE_VM_HOST` precisa ser atualizado.
 
 ## Visão geral
 
-| Workflow | Arquivo | Quando roda | O que faz |
-|----------|---------|-------------|-----------|
-| Terraform Azure | `.github/workflows/main.yml` | Manual | Cria a VM e a rede na Azure |
-| Build e Deploy Docker II | `.github/workflows/pipeline.yml` | Push em `app/**`, `dockerfile` ou manual | Site simples: build, push no Docker Hub e deploy na VM |
-| Deploy Compose (site + banco) | `.github/workflows/deploy-compose.yml` | Push em `site-db/**` ou manual | Site com PostgreSQL: build, push, cópia do Compose e deploy na VM |
+| Workflow                      | Arquivo                                | Quando roda                              | O que faz                                                         |
+| ----------------------------- | -------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------- |
+| Terraform Azure               | `.github/workflows/main.yml`           | Manual                                   | Cria a VM e a rede na Azure                                       |
+| Build e Deploy Docker II      | `.github/workflows/pipeline.yml`       | Push em `app/**`, `dockerfile` ou manual | Site simples: build, push no Docker Hub e deploy na VM            |
+| Deploy Compose (site + banco) | `.github/workflows/deploy-compose.yml` | Push em `site-db/**` ou manual           | Site com PostgreSQL: build, push, cópia do Compose e deploy na VM |
 
 ```
 push -> build (imagem no Docker Hub) -> [aprovação manual] -> deploy na VM Azure via SSH
@@ -74,10 +74,10 @@ Se a porta 8080 já estiver em uso no seu computador, troque por outra (por exem
 
 A pasta `site-db/` tem a aplicação **"Mural de recados"**: página web + API em Node/Express + banco **PostgreSQL**, que sobem juntos com Docker Compose.
 
-| Serviço | Imagem | Detalhes |
-|---------|--------|----------|
-| `web` | `<usuario>/site-db-web:latest` | Node 20, porta interna 3000, publicada na porta **8081** da VM |
-| `db` | `postgres:16-alpine` | Dados no volume `db_data`, sem porta exposta na internet, com healthcheck |
+| Serviço | Imagem                         | Detalhes                                                                  |
+| ------- | ------------------------------ | ------------------------------------------------------------------------- |
+| `web`   | `<usuario>/site-db-web:latest` | Node 20, porta interna 3000, publicada na porta **8081** da VM            |
+| `db`    | `postgres:16-alpine`           | Dados no volume `db_data`, sem porta exposta na internet, com healthcheck |
 
 O `web` só inicia depois que o banco estiver saudável (`depends_on` com `service_healthy`), e a aplicação ainda tenta reconectar sozinha caso o banco demore.
 
@@ -118,28 +118,28 @@ Quando a pipeline chega no deploy, aparece o botão **Review deployments**: marq
 
 Configure em **Settings > Secrets and variables > Actions > Repository secrets**:
 
-| Secret | Usado em | Descrição |
-|--------|----------|-----------|
-| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | Terraform | Identificam a conta Azure (OIDC) |
-| `SSH_PUBLIC_KEY` | Terraform | Chave **pública** SSH instalada na VM |
-| `DOCKERHUB_USERNAME` | Pipelines | Usuário do Docker Hub |
-| `DOCKERHUB_TOKEN` | Pipelines | Token do Docker Hub com permissão **Read & Write** |
-| `AZURE_VM_HOST` | Pipelines | IP público da VM |
-| `AZURE_VM_USER` | Pipelines | `azureuser` |
-| `AZURE_VM_SSH_KEY` | Pipelines | Chave **privada** SSH (par da pública acima) |
-| `POSTGRES_PASSWORD` | Compose | Senha do banco (letras e números, sem aspas) |
+| Secret                                                        | Usado em  | Descrição                                          |
+| ------------------------------------------------------------- | --------- | -------------------------------------------------- |
+| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | Terraform | Identificam a conta Azure (OIDC)                   |
+| `SSH_PUBLIC_KEY`                                              | Terraform | Chave **pública** SSH instalada na VM              |
+| `DOCKERHUB_USERNAME`                                          | Pipelines | Usuário do Docker Hub                              |
+| `DOCKERHUB_TOKEN`                                             | Pipelines | Token do Docker Hub com permissão **Read & Write** |
+| `AZURE_VM_HOST`                                               | Pipelines | IP público da VM                                   |
+| `AZURE_VM_USER`                                               | Pipelines | `azureuser`                                        |
+| `AZURE_VM_SSH_KEY`                                            | Pipelines | Chave **privada** SSH (par da pública acima)       |
+| `POSTGRES_PASSWORD`                                           | Compose   | Senha do banco (letras e números, sem aspas)       |
 
 ## Infraestrutura (Terraform)
 
 O `main.tf` cria:
 
-| Recurso | Nome | Detalhe |
-|---------|------|---------|
-| Resource group | `rg-terraform-aula` | Região `southafricanorth` |
-| Rede virtual / sub-rede | `terraform-vnet` / `default` | `10.10.0.0/16` e `10.10.1.0/24` |
-| Network security group | `terraform-nsg` | Libera as portas **80** (HTTP), **8081** (site com banco) e **22** (SSH) |
-| IP público | `terraform-ip` | Estático |
-| VM Linux | `terraform-linux-vm` | Ubuntu 22.04, `Standard_B2ats_v2`, usuário `azureuser` |
+| Recurso                 | Nome                         | Detalhe                                                                  |
+| ----------------------- | ---------------------------- | ------------------------------------------------------------------------ |
+| Resource group          | `rg-terraform-aula`          | Região `southafricanorth`                                                |
+| Rede virtual / sub-rede | `terraform-vnet` / `default` | `10.10.0.0/16` e `10.10.1.0/24`                                          |
+| Network security group  | `terraform-nsg`              | Libera as portas **80** (HTTP), **8081** (site com banco) e **22** (SSH) |
+| IP público              | `terraform-ip`               | Estático                                                                 |
+| VM Linux                | `terraform-linux-vm`         | Ubuntu 22.04, `Standard_B2ats_v2`, usuário `azureuser`                   |
 
 Docker e Docker Compose são instalados pelo cloud-init na criação da VM, e o login é só por chave SSH.
 
@@ -177,4 +177,5 @@ A pública (`.pub`) vai no secret `SSH_PUBLIC_KEY` e em `~/.ssh/authorized_keys`
 - **Containers em execução:** `docker ps`.
 
 ## Autor
+
 Lucas Aires Cardoso
