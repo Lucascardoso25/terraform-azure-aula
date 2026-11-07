@@ -1,0 +1,51 @@
+name: Build e Deploy Docker II
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build e Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/app-docker-aula:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Implantar na VM via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script_stop: true
+          script: |
+            # Espera o cloud-init terminar de instalar o Docker (VM recém-criada)
+            cloud-init status --wait || true
+            timeout 600 bash -c 'until command -v docker >/dev/null 2>&1; do sleep 10; done'
+
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/app-docker-aula:latest
+            docker rm -f app-docker-aula || true
+            docker run -d --name app-docker-aula \
+              -p 80:80 \
+              --restart unless-stopped \
+              ${{ secrets.DOCKERHUB_USERNAME }}/app-docker-aula:latest
