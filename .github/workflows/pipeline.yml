@@ -37,7 +37,6 @@ jobs:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
-          script_stop: true
           script: |
             # Espera o cloud-init terminar de instalar o Docker (VM recém-criada)
             cloud-init status --wait || true
