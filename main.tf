@@ -1,4 +1,3 @@
-
 terraform {
   required_providers {
     azurerm = {
@@ -6,6 +5,17 @@ terraform {
       version = "~> 4.0"
     }
   }
+
+  # Estado remoto (opcional). Sem isso, cada execucao do workflow comeca "do zero"
+  # e um segundo apply tenta recriar tudo. Para usar, crie um Storage Account na
+  # Azure, descomente o bloco abaixo e ajuste os nomes.
+  #
+  # backend "azurerm" {
+  #   resource_group_name  = "rg-tfstate"
+  #   storage_account_name = "SEU_STORAGE_ACCOUNT"
+  #   container_name       = "tfstate"
+  #   key                  = "app-docker-aula.tfstate"
+  # }
 }
 
 provider "azurerm" {
@@ -14,7 +24,7 @@ provider "azurerm" {
   resource_provider_registrations = "none"
 }
 
-# Chave publica gerada pelo GitHub Actions
+# Chave publica gerada pelo GitHub Actions (secret SSH_PUBLIC_KEY)
 variable "admin_ssh_public_key" {
   description = "Chave publica SSH temporaria do laboratorio"
   type        = string
@@ -68,7 +78,7 @@ resource "azurerm_network_security_group" "vm" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
-   
+
   security_rule {
     name                       = "SSH"
     priority                   = 1100
@@ -138,6 +148,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
     public_key = var.admin_ssh_public_key
   }
 
+  # O Docker e instalado pelo cloud-init (leva alguns minutos apos a VM subir)
   custom_data = base64encode(<<-CLOUDCONFIG
     #cloud-config
     package_update: true
@@ -174,10 +185,15 @@ output "nome_vm" {
   value = azurerm_linux_virtual_machine.vm.name
 }
 
+# Use este valor no secret AZURE_VM_HOST
 output "ip_publico" {
   value = azurerm_public_ip.vm.ip_address
 }
 
 output "tamanho_vm" {
   value = azurerm_linux_virtual_machine.vm.size
+}
+
+output "comando_ssh" {
+  value = "ssh azureuser@${azurerm_public_ip.vm.ip_address}"
 }
