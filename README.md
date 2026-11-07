@@ -58,7 +58,7 @@ A pasta `site-db/` tem uma aplicação **"Mural de recados"**: página web + API
 
 | Serviço | Imagem | Detalhes |
 |---------|--------|----------|
-| `web` | `<usuario>/site-db-web:latest` | Node 20, porta interna 3000, publicada na porta 80 da VM |
+| `web` | `<usuario>/site-db-web:latest` | Node 20, porta interna 3000, publicada na porta **8081** da VM |
 | `db` | `postgres:16-alpine` | Dados no volume `db_data`, sem porta exposta na internet, com healthcheck |
 
 O `web` só inicia depois que o banco estiver saudável (`depends_on` com `service_healthy`), e a aplicação ainda tenta reconectar sozinha caso o banco demore.
@@ -75,7 +75,7 @@ docker compose up --build
 
 Acesse `http://localhost:8080`.
 
-Como a porta 80 da VM é única, o deploy do Compose remove o container do site simples antes de subir, e o deploy do site simples derruba o Compose antes de subir (os dados do banco ficam preservados no volume).
+Os dois sites rodam ao mesmo tempo na VM: o site simples na porta **80** e o site com banco na porta **8081** (regra `http-8081` no `terraform-nsg`).
 
 ## 3. Estágio de aprovação
 
@@ -114,7 +114,7 @@ O `main.tf` cria:
 |---------|------|---------|
 | Resource group | `rg-terraform-aula` | Região `southafricanorth` |
 | Rede virtual / sub-rede | `terraform-vnet` / `default` | `10.10.0.0/16` e `10.10.1.0/24` |
-| Network security group | `terraform-nsg` | Libera as portas **80** e **22** |
+| Network security group | `terraform-nsg` | Libera as portas **80**, **8081** e **22** |
 | IP público | `terraform-ip` | Estático |
 | VM Linux | `terraform-linux-vm` | Ubuntu 22.04, `Standard_B2ats_v2`, usuário `azureuser` |
 
@@ -128,7 +128,7 @@ Sem backend remoto, rode o workflow **Terraform Azure** uma vez só (um segundo 
 2. Rode o workflow **Terraform Azure** (se a VM ainda não existir) e pegue o IP.
 3. Faça push em `site-db/**` (ou rode **Deploy Compose** manualmente).
 4. Quando o job `deploy` pausar, aprove em **Review deployments**.
-5. Acesse `http://<IP_DA_VM>`: a página "Mural de recados" deve mostrar "Banco de dados conectado".
+5. Acesse `http://<IP_DA_VM>:8081`: a página "Mural de recados" deve mostrar "Banco de dados conectado".
 
 ## Troubleshooting
 
@@ -137,7 +137,7 @@ Sem backend remoto, rode o workflow **Terraform Azure** uma vez só (um segundo 
 - **Push falha com "insufficient scopes":** gere um token com permissão Read & Write.
 - **`missing server host`:** o secret `AZURE_VM_HOST` não existe ou está vazio.
 - **Erro de SSH (`unable to authenticate`):** `AZURE_VM_SSH_KEY` precisa ser a privada do par da pública que está na VM.
-- **Porta 80 em uso:** só um dos sites roda por vez na porta 80; o próprio deploy do outro libera a porta.
+- **Site com banco não abre:** use `http://<IP_DA_VM>:8081` (com a porta) e confira se a regra de entrada da porta 8081 existe no `terraform-nsg`.
 - **Ver logs na VM:** `docker compose -f ~/site-db/docker-compose.yml logs` (Compose) ou `docker logs app-docker-aula` (site simples).
 - **Ver os containers:** `docker ps`.
 
